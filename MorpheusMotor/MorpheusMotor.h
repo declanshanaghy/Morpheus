@@ -8,14 +8,13 @@ class MorpheusMotor
 {
 public:
     MorpheusMotor(int addr);
-	void setDCMotorParams(short n, short dir, int spd);
-	void setServoParams(short n, short angle);
+	boolean setDCMotorParams(short n, short dir, short spd);
+	boolean setServoParams(short n, short angle);
 	void testDCMotors();
 	void testServos();
 	
 private:
     int _addr;
-	char _num[3];
 };
 
 #endif

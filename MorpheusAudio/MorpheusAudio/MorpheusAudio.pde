@@ -23,7 +23,7 @@ FatReader root;   // This holds the information for the volumes root directory
 FatReader file;   // This object represent the WAV file 
 WaveHC wave;      // This is the only wave (audio) object, since we will only play one at a time
 
-MorpheusSlave slave;
+MorpheusSlave slave = MorpheusSlave(1);
 
 void setup()
 {

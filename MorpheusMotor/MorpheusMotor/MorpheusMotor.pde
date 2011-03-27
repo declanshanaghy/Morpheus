@@ -20,7 +20,7 @@ AF_DCMotor ml(4, MOTOR34_1KHZ); // create motor #4, 64KHz pwm
 Servo sv; 
 Servo sh; 
 
-#define DBG 1
+#define DBG 0
 
 void setup()
 {
@@ -105,7 +105,7 @@ void extractDCMotorParams() {
 #if DBG
     Serial.print("ERROR: speed < 0: ");
 #endif
-    spd = 50;
+    spd = 0;
   }
 
   char cDir = slave.getChar(0);
@@ -154,7 +154,7 @@ void loop() {
     switch ( slave.command ) {
     case 'a':  //Motor 1
 #if DBG
-      Serial.print("R: ");
+      Serial.print("motor a: ");
 #endif
       extractDCMotorParams();
       mr.setSpeed(spd);
@@ -162,7 +162,7 @@ void loop() {
       break;
     case 'd':  //Motor 4
 #if DBG
-      Serial.print("L: ");
+      Serial.print("motor d: ");
 #endif
       extractDCMotorParams();
       ml.setSpeed(spd);
@@ -200,14 +200,14 @@ void loop() {
       break;
     case 'e':
 #if DBG
-      Serial.print("V: ");
+      Serial.print("vert: ");
 #endif
       extractServoParams();
       setVertical(angle);
       break;
     case 'f':
 #if DBG
-      Serial.print("H: ");
+      Serial.print("horiz: ");
 #endif
       extractServoParams();
       setHorizontal(angle);

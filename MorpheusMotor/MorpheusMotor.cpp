@@ -5,54 +5,58 @@ MorpheusMotor::MorpheusMotor(int addr)
 	_addr = addr;
 }
 
-void MorpheusMotor::setServoParams(short n, short angle) {
+boolean MorpheusMotor::setServoParams(short n, short angle) {
 	if ( n < 1 || n > 4 ) {
+#ifdef DBG		
 		Serial.print("Invalid servo number: ");
 		Serial.println(n);		
-		return;
+#endif
+		return false;
 	}
 	if ( angle < 0 || angle > 180 ) {
+#ifdef DBG		
 		Serial.print("Invalid angle: ");
 		Serial.println(angle);		
-		return;
+#endif
+		return false;
 	}
 	
-	itoa(angle, _num, 10);
 	Wire.beginTransmission(_addr);
 	Wire.send((short)'e' + n-1);
-	Wire.send((short)_num[0]);
-	Wire.send((short)_num[1]);
-	Wire.send((short)_num[2]);
+	Wire.send(angle);
 	Wire.endTransmission();
-	delay(100);
+	return true;
 }
 
-void MorpheusMotor::setDCMotorParams(short n, short dir, int spd) {
+boolean MorpheusMotor::setDCMotorParams(short n, short dir, short spd) {
 	if ( n < 1 || n > 4 ) {
+#ifdef DBG		
 		Serial.print("Invalid motor number: ");
 		Serial.println(n);		
-		return;
+		return false;
+#endif
 	}
 	if ( dir < 1 || dir > 4 ) {
+#ifdef DBG		
 		Serial.print("Invalid direction: ");
 		Serial.println(dir);		
-		return;
+#endif
+		return false;
 	}
 	if ( spd < 0 || spd > 255 ) {
+#ifdef DBG		
 		Serial.print("Invalid speed: ");
 		Serial.println(spd);		
-		return;
+#endif
+		return false;
 	}
 
-	itoa(spd, _num, 10);
 	Wire.beginTransmission(_addr);
 	Wire.send((short)'a' + n-1);
 	Wire.send((short)'1' + dir-1);
-	Wire.send((short)_num[0]);
-	Wire.send((short)_num[1]);
-	Wire.send((short)_num[2]);
+	Wire.send((short)spd);
 	Wire.endTransmission();
-	delay(100);
+	return true;
 }
 	
 void MorpheusMotor::testDCMotors() {
