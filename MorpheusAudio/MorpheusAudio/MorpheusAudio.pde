@@ -13,17 +13,22 @@
 #define PIN_ADDR_MSB 6
 #define PIN_ADDR_LSB 7
 
-short addr = 0;
+#define DBG 1
 
+short addr = 0;
 int maxIndex = FILE_MAX;
 
 SdReader card;    // This object holds the information for the card
 FatVolume vol;    // This holds the information for the partition on the card
-FatReader root;   // This holds the information for the volumes root directory
-FatReader file;   // This object represent the WAV file 
+FatReader rootReader;   // This holds the information for the volumes root directory
+FatReader fReader;   // This object represent the WAV file 
 WaveHC wave;      // This is the only wave (audio) object, since we will only play one at a time
 
-MorpheusSlave slave = MorpheusSlave(1);
+MorpheusSlave slave = MorpheusSlave(3);
+
+uint8_t loopCount = 0;
+uint8_t loopMax = 0;
+boolean playLoop = false;
 
 void setup()
 {
@@ -36,7 +41,7 @@ void setup()
   int h = digitalRead(PIN_ADDR_MSB);
   addr = h << 1 | l;
 
-  randomSeed(analogRead(0));
+  randomSeed(micros());
   
   setupWave();
   indexFiles();
@@ -49,33 +54,9 @@ void setup()
   Serial.println(addr, HEX);
 }
 
-void receiveEvent(int n) {
-  slave.receiveI2C(n);
-}
-
-void setupWave() {
-  if (!card.init()) error("card.init");
-
-  // enable optimized read - some cards may timeout
-  card.partialBlockRead(true);
-
-  if (!vol.init(card)) error("vol.init");
-
-  if (!root.openRoot(vol)) error("openRoot");  
-}
-
-void reset() {
-  Serial.println("reset");
-  setupWave();
-}
-
-void test() {
-  Serial.println("test");
-  playRandom();
-}
-
 void loop()
 {
+  checkPlayLoop();
   slave.receiveSerial();
   
   if ( slave.newCommand() ) {
@@ -104,16 +85,97 @@ void loop()
     
     slave.reset();
   }
+  
+}
+
+void checkPlayLoop() {
+  boolean notPlaying = !wave.isplaying;
+  boolean moreLoops = loopCount < loopMax;
+  
+#ifdef DBG
+  Serial.print("playLoop: ");
+  Serial.print(playLoop ? "1" : "0");
+  Serial.print(" loopCount: ");
+  Serial.print((int)loopCount);
+  Serial.print(" loopMax: ");
+  Serial.print((int)loopMax);
+  Serial.print(" notPlaying: ");
+  Serial.print(notPlaying ? "1" : "0");
+  Serial.print(" moreLoops: ");
+  Serial.println(moreLoops ? "1" : "0");
+#endif
+
+  if ( playLoop && notPlaying ) {
+    if ( loopMax != 255 )  //255 means loop infinitely
+      loopCount++;
+    wave.seek(0);
+    wave.play();
+    if ( loopCount >= loopMax )
+      resetPlayLoop();
+  }
+}
+
+void receiveEvent(int n) {
+  slave.receiveI2C(n);
+}
+
+void setupWave() {
+  if (!card.init()) error("card.init");
+
+  // enable optimized read - some cards may timeout
+  card.partialBlockRead(true);
+
+  if (!vol.init(card)) error("vol.init");
+
+  if (!rootReader.openRoot(vol)) error("openRoot");  
+  
+  resetPlayLoop();
+}
+
+void resetPlayLoop() {
+  playLoop = false;
+  loopCount = 0;
+  loopMax = 0;
+}
+
+void playFromData() {
+  loopMax = slave.getData(0);
+  uint8_t id = slave.getData(1);
+  playById(id);
+}
+
+void reset() {
+#ifdef DBG  
+  Serial.println("reset");
+#endif
+  stopPlayback();
+  setupWave();
+}
+
+void test() {
+#ifdef DBG  
+  Serial.println("test");
+#endif
+  loopCount = 0;
+  playRandom();
 }
 
 void playRandom() {
+#ifdef DBG
   Serial.println("playRandom");
+#endif
+  loopMax = slave.getData(0);
   playById(random(maxIndex+1));
 }
 
 void stopPlayback() {
+#ifdef DBG  
   Serial.println("stopPlayback");
-  wave.stop();
+#endif
+  resetPlayLoop();
+  if ( wave.isplaying ) {
+    wave.stop();
+  }
 }
 
 /////////////////////////////////// HELPERS
@@ -153,50 +215,60 @@ void indexFiles(void)
   for (uint8_t i = 0; i < FILE_MAX; i++) {
     sprintf(name, "%02d.WAV", i);
     
+#ifdef DBG  
     Serial.print("Verifying: ");
     Serial.println(name);
-    
+#endif
+
     // Open file by name
-    if (!file.open(root, name)) {
+    if (!fReader.open(rootReader, name)) {
       maxIndex = i-1;
       break;
     }
   }
   
+#ifdef DBG  
   Serial.print("maxIndex: ");
   Serial.println(maxIndex);
+#endif
 }
 
-
-void playFromData() {
-  int id = atoi(slave.data);
-  playById(id);
-}
-
-void playById(int id) {
+boolean playById(int id) {
   if ( id <= 0 || id > maxIndex ) {
+#ifdef DBG  
     Serial.print("Invalid Id: "); 
     Serial.println(id);
-    return;
+#endif
+    return false;
   }
 
   char name[7];
   sprintf(name,"%02d.WAV",id);
+#ifdef DBG  
   Serial.print("Playing: ");
   Serial.println(name);
+#endif
 
-  wave.stop();
+  if ( wave.isplaying )
+    wave.stop();
   
-  if (!file.open(root, name))  {
+  if (!fReader.open(rootReader, name))  {
+#ifdef DBG  
     Serial.println("Error opening file"); 
-    return;
+#endif
+    return false;
   }
     
   // create wave and start play
-  if (!wave.create(file)) {
+  if (!wave.create(fReader)) {
+#ifdef DBG
     Serial.println("Error creating wave object"); 
-    return;
+#endif
+    return false;
   }
   
+  loopCount = 1;
+  playLoop = loopMax > 1;
   wave.play();
+  return true;
 }

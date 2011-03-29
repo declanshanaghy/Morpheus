@@ -10,6 +10,7 @@ public:
     MorpheusAudio(int addr);
 	void stop();
 	void playRandom();
+	void playRandom(uint8_t nLoop);
 	void indexFiles();
 	
 private:

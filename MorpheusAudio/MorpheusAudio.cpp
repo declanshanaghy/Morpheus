@@ -12,8 +12,13 @@ void MorpheusAudio::stop() {
 }
 
 void MorpheusAudio::playRandom() {
+	playRandom(1);
+}
+
+void MorpheusAudio::playRandom(uint8_t nLoop) {
 	Wire.beginTransmission(_addr);
 	Wire.send((short)'r');
+	Wire.send(nLoop);
 	Wire.endTransmission();
 }
 
