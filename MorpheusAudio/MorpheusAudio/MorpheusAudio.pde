@@ -10,10 +10,10 @@
 
 #define FILE_MAX   99
 
-#define PIN_ADDR_MSB 6
-#define PIN_ADDR_LSB 7
+#define PIN_ADDR_MSB A1
+#define PIN_ADDR_LSB A2
 
-#define DBG 1
+#define DBG 0
 
 short addr = 0;
 int maxIndex = FILE_MAX;
@@ -41,7 +41,7 @@ void setup()
   int h = digitalRead(PIN_ADDR_MSB);
   addr = h << 1 | l;
 
-  randomSeed(micros());
+  randomSeed(analogRead(A0));
   
   setupWave();
   indexFiles();
@@ -92,19 +92,6 @@ void checkPlayLoop() {
   boolean notPlaying = !wave.isplaying;
   boolean moreLoops = loopCount < loopMax;
   
-#ifdef DBG
-  Serial.print("playLoop: ");
-  Serial.print(playLoop ? "1" : "0");
-  Serial.print(" loopCount: ");
-  Serial.print((int)loopCount);
-  Serial.print(" loopMax: ");
-  Serial.print((int)loopMax);
-  Serial.print(" notPlaying: ");
-  Serial.print(notPlaying ? "1" : "0");
-  Serial.print(" moreLoops: ");
-  Serial.println(moreLoops ? "1" : "0");
-#endif
-
   if ( playLoop && notPlaying ) {
     if ( loopMax != 255 )  //255 means loop infinitely
       loopCount++;
@@ -165,7 +152,7 @@ void playRandom() {
   Serial.println("playRandom");
 #endif
   loopMax = slave.getData(0);
-  playById(random(maxIndex+1));
+  playById(random(1,maxIndex+1));
 }
 
 void stopPlayback() {
