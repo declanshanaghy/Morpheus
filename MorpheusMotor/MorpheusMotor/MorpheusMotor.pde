@@ -6,7 +6,7 @@
 #define PIN_ADDR_MSB A2
 #define PIN_ADDR_LSB A1
 
-#define PIN_SRV_V    10
+#define PIN_SRV_V    A0
 #define PIN_SRV_H    9
 
 short addr = 0;
@@ -15,8 +15,8 @@ uint8_t dir;
 uint16_t spd;
 uint16_t angle;
 
-AF_DCMotor mr(1, MOTOR34_1KHZ); // create motor #1, 64KHz pwm
-AF_DCMotor ml(4, MOTOR34_1KHZ); // create motor #4, 64KHz pwm
+AF_DCMotor mr(2, MOTOR34_1KHZ); // create motor #1, 64KHz pwm
+AF_DCMotor ml(3, MOTOR34_1KHZ); // create motor #4, 64KHz pwm
 Servo sv; 
 Servo sh; 
 
