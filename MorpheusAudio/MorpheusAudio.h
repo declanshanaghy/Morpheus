@@ -11,6 +11,7 @@ public:
 	void stop();
 	void playRandom();
 	void playRandom(uint8_t nLoop);
+	void playById(uint8_t nLoop, uint8_t nId);
 	void indexFiles();
 	
 private:
