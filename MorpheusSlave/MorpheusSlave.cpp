@@ -1,8 +1,7 @@
 #include "MorpheusSlave.h"
 
-MorpheusSlave::MorpheusSlave(int nData)
+MorpheusSlave::MorpheusSlave()
 {
-	_nData = nData;
 	reset();
 	
 	// if analog input pin 0 is unconnected, random analog
@@ -18,110 +17,120 @@ boolean MorpheusSlave::newCommand() {
 
 void MorpheusSlave::reset() {
 #if DBG
-	Serial.print("reset");
+	Serial.println("reset");
 #endif
-	_rxs = 0;
 	_lastRX = -1;
 	_exec = false;
 	command = NULL;
-    for ( int i=0; i<N_DATA; i++)
-		data[i] = NULL;	
+    data = NULL;	
 }
 
 uint8_t MorpheusSlave::getData(int pos) {
-	return data[pos];
+	return data.charAt(pos);
+}
+
+uint8_t MorpheusSlave::getAscii09(int pos) {
+	int d = data.charAt(pos);
+    if ( d >= 48 && d <= 57 )
+        //Convert from ascii to int
+        d -= 48;
+    return d;
 }
 
 char MorpheusSlave::getChar(int pos) {
-	return data[pos];
+	return data.charAt(pos);
 }
 
 void MorpheusSlave::endComm() {
-	_rxs = 0;
 	_lastRX = -1;
 	_exec = true;
 	//Serial.flush();
     
 #if DBG
 	Serial.print("command: ");
-	Serial.print(command);
-	Serial.print(" ");
-	for ( int i=0; i < N_DATA && data[i] != NULL; i++) {
-		Serial.print(data[i], DEC);
-		Serial.print(',');
-	}
-	Serial.println();
+	Serial.println(command);
+	Serial.print("data: ");
+	Serial.println(data);
 #endif
 }
 
 void MorpheusSlave::receiveSerial() {
 	if ( Serial.available() )  {
-		byte b;
+		char b;
 		while ( Serial.available() > 0 ) {
-			if ( _rxs > N_DATA ) {
-				endComm();
-				break;
-			}
-			
 			_lastRX = millis();
 			b = Serial.read();
+#if DBG
+			Serial.print("B: ");
+			Serial.println(b);
+#endif
 			if ( b == '\n' ) {
 				endComm();
 				break;
 			}
+			else if ( command == NULL ) {
+				command = b;
+				data = "";
+			}
 			else {
-				switch ( _rxs ) {
-					case 0:
-#if DBG
-						Serial.print("SER receiveEvent: ");
-#endif
-						command = b;
-						break;
-					default:
-						data[_rxs-1] = b;
-						break;
-				}
-			}
-			_rxs++;
-			if ( _rxs == _nData ) {
-				endComm();
-				break;
+				data += b;
 			}
 		}
-		
-		if ( _rxs > N_DATA ) {
-			endComm();
-		}
-	}
+    }
 	
 	if ( _lastRX != -1 && millis() - _lastRX > RX_TIMEOUT ) {
 		endComm();
 	}
 }
 
-void MorpheusSlave::receiveI2C(int n) {
+void MorpheusSlave::receiveEthernet(EthernetClient& incoming) {
+	if ( incoming.available() )  {
+		char b;
+		while ( incoming.available() > 0 ) {
+			_lastRX = millis();
+			b = incoming.read();
 #if DBG
-	Serial.print("I2C receiveEvent: ");
-	Serial.println(n);
-	Serial.print("I2C: ");
+			Serial.print("B: ");
+			Serial.println(b);
 #endif
-	
-	int i = 0;
-	while ( Wire.available() > 0 ){
-		if ( i > N_DATA ) {
-			break;
+			if ( b == '\n' ) {
+				endComm();
+				break;
+			}
+			else if ( command == NULL ) {
+				command = b;
+				data = "";
+			}
+			else {
+				data += b;
+			}
 		}
-		switch ( i ) {
+    }
+	
+	if ( _lastRX != -1 && millis() - _lastRX > RX_TIMEOUT ) {
+		endComm();
+	}
+}
+
+void MorpheusSlave::receiveI2C(int n) {	
+	int i = 0;
+	char b;
+	while ( Wire.available() > 0 ){
+		b = Wire.read();
+#if DBG
+		Serial.print("B: ");
+		Serial.println(b);
+#endif
+		switch ( i++ ) {
 			case 0:
-				command = Wire.receive();
+				command = b;
+				data = "";
 				break;
 			default:
-				data[i-1] = Wire.receive();
+				data += b;
 				break;
 		}
-		i++;
 	}
 	
 	endComm();
 }
-

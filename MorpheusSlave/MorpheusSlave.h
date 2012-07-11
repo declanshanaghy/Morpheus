@@ -1,31 +1,32 @@
 #ifndef MorpheusSlave_h
 #define MorpheusSlave_h
 
-#include "WProgram.h"
+#include <Arduino.h>
 #include <Wire.h>
+#include <Ethernet.h>
 
-#define N_DATA		4
 #define RX_TIMEOUT	100
+#define DBG 0
 
 class MorpheusSlave
 {
 public:
-    MorpheusSlave(int nData);
+    MorpheusSlave();
 
 	char command;
-	uint8_t data[N_DATA];
+	String data;
 	
 	void reset();
 	boolean newCommand();
 	
 	void receiveSerial();
 	void receiveI2C(int n);
+	void receiveEthernet(EthernetClient& client);
 	uint8_t getData(int pos);
+	uint8_t getAscii09(int pos);    
 	char getChar(int pos);
 
 private:
-	int _rxs;
-	int _nData;
 	unsigned long _lastRX;
 	boolean _exec;
 		
